@@ -1,3 +1,6 @@
 node_modules/
 .env
 *.log
+InnovaHack_Project_Plan.md
+antigravity_prompt.md
+create_presentation.py

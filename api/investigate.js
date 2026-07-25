@@ -1,37 +1,34 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { ResearchAgent, VerificationEngine, SynthesisAgent } = require("./lib/agents");
+const { ResearchAgent, VerificationEngine, SynthesisAgent } = require("../lib/agents");
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+module.exports = async (req, res) => {
+  // CORS Headers
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-gemini-key, x-tavily-key"
+  );
 
-app.use(cors());
-app.use(express.json());
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
 
-// Serve static frontend files from public/
-app.use(express.static(path.join(__dirname, "public")));
-
-// Serve index.html on the root path
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-/**
- * SSE endpoint for live investigation streaming.
- */
-app.get("/api/investigate", async (req, res) => {
   // Set headers for Server-Sent Events (SSE)
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "Connection": "keep-alive"
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no"
   });
 
   const sendEvent = (event, data) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (typeof res.flush === "function") {
+      res.flush();
+    }
   };
 
   const topic = req.query.topic;
@@ -106,8 +103,4 @@ app.get("/api/investigate", async (req, res) => {
   } finally {
     res.end();
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`TrustLayer server running at http://localhost:${PORT}`);
-});
+};
