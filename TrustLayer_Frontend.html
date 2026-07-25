@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustLayer — Verification Console</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg-main:#FFFDFB;
+  --bg-card:rgba(255, 255, 255, 0.8);
+  --bg-inner:rgba(255, 253, 251, 0.7);
+  --border-color:rgba(232, 106, 88, 0.08);
+  --border-focus:rgba(232, 106, 88, 0.35);
+  --text-primary:#2D221E;
+  --text-secondary:#5C4E48;
+  --text-muted:#A6938A;
+  --verified:#10B981;
+  --verified-bg:linear-gradient(135deg, #ECFDF5, #D1FADF);
+  --verified-border:#A7F3D0;
+  --ambiguous:#D97706;
+  --ambiguous-bg:linear-gradient(135deg, #FFFBEB, #FEF0C7);
+  --ambiguous-border:#FDE68A;
+  --flagged:#DC2626;
+  --flagged-bg:linear-gradient(135deg, #FEF2F2, #FEE4E2);
+  --flagged-border:#FECACA;
+  --brand-color:#E86A58;
+  --brand-gradient:linear-gradient(135deg, #FF9E79, #E86A58);
+  --scan-color:#F5B041;
+  --scan-bg:linear-gradient(135deg, #FFFDF0, #FEF9D9);
+  --scan-border:#FDEB9E;
+  --radius-lg:16px;
+  --radius-md:10px;
+  --font-display:'Plus Jakarta Sans',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg-main);
+  color:var(--text-primary);
+  font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased;
+  position:relative;
+  min-height:100vh;
+}
+::selection{background:rgba(232, 106, 88, 0.1);color:var(--brand-color);}
+:focus-visible{outline:2px solid var(--brand-color);outline-offset:2px;}
+button{font-family:inherit;cursor:pointer;}
+input{font-family:inherit;}
+
+/* ---------- stunning dynamic background blobs ---------- */
+.bg-blobs {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: -2;
+  pointer-events: none;
+  background: #FFFDFB;
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.28;
+  animation: floatBlob 25s infinite alternate ease-in-out;
+}
+.blob-1 {
+  width: 600px; height: 600px;
+  background: linear-gradient(135deg, #FFB3A7, #FFE3EC); /* Peach to Soft Rose */
+  top: -15%; left: -10%;
+  animation-delay: 0s;
+}
+.blob-2 {
+  width: 550px; height: 550px;
+  background: linear-gradient(135deg, #FFE8A3, #FFD39B); /* Butter Yellow to Apricot */
+  bottom: -15%; right: -5%;
+  animation-duration: 30s;
+  animation-delay: 3s;
+}
+.blob-3 {
+  width: 480px; height: 480px;
+  background: linear-gradient(135deg, #FFC5D9, #FFF0F5); /* Warm Rose */
+  top: 35%; left: 40%;
+  animation-duration: 22s;
+  animation-delay: 6s;
+}
+.blob-4 {
+  width: 400px; height: 400px;
+  background: linear-gradient(135deg, #FFA07A, #FFE4B5); /* Melon to Peach Yellow */
+  bottom: 25%; left: -5%;
+  animation-duration: 28s;
+  animation-delay: 2s;
+}
+@keyframes floatBlob {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate(80px, 60px) scale(1.15) rotate(180deg); }
+  100% { transform: translate(-50px, 100px) scale(0.9) rotate(360deg); }
+}
+
+.bg-dot-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(232, 106, 88, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(circle at center, black, transparent 90%);
+}
+
+/* ---------- layout shell ---------- */
+.app{max-width:1280px;margin:0 auto;padding:32px 24px 60px;}
+
+/* ---------- topbar ---------- */
+.topbar{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  gap:24px;padding-bottom:20px;border-bottom:1px solid var(--border-color);
+  flex-wrap:wrap;
+  position:relative;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:36px;height:36px;border-radius:var(--radius-md);
+  background:var(--brand-gradient);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:800;font-size:16px;color:#FFFFFF;
+  flex-shrink:0;
+  box-shadow:0 4px 12px rgba(232, 106, 88, 0.25);
+}
+.brand-text h1{
+  font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-0.02em;color:var(--text-primary);
+}
+.brand-text p{
+  font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;
+}
+.topbar-right{
+  display:flex;align-items:center;gap:18px;
+}
+.topbar-meta{
+  font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);text-align:right;letter-spacing:-0.01em;
+  line-height:1.6;
+}
+.topbar-meta .dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--text-muted);margin-right:6px;
+}
+.topbar-meta .dot.live{background:var(--verified);box-shadow:0 0 8px var(--verified);animation:pulse 1.8s infinite;}
+
+.settings-btn{
+  background:rgba(255, 255, 255, 0.8);border:1px solid var(--border-color);color:var(--text-secondary);
+  width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter:blur(8px);
+}
+.settings-btn:hover{color:var(--text-primary);border-color:var(--brand-color);box-shadow:0 4px 12px rgba(232, 106, 88, 0.08);}
+.settings-btn svg{width:18px;height:18px;}
+
+/* ---------- Settings Tray ---------- */
+.settings-tray{
+  position:absolute;top:100%;right:0;width:320px;
+  background:#FFFFFF;border:1px solid var(--border-color);
+  border-radius:var(--radius-lg);padding:20px;z-index:100;
+  box-shadow:0 12px 32px rgba(45, 34, 30, 0.06);
+  margin-top:10px;
+  display:none;
+}
+.settings-tray.open{display:block;animation:traySlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);}
+@keyframes traySlide{ from{opacity:0;transform:translateY(-8px);} to{opacity:1;transform:translateY(0);} }
+.settings-tray h3{font-size:11px;font-family:var(--font-mono);text-transform:uppercase;color:var(--text-primary);margin-bottom:14px;border-bottom:1px solid var(--border-color);padding-bottom:6px;letter-spacing:0.04em;}
+.settings-group{margin-bottom:14px;}
+.settings-group label{display:block;font-size:10px;color:var(--text-secondary);margin-bottom:5px;font-family:var(--font-mono);}
+.settings-group input{
+  width:100%;background:var(--bg-main);border:1px solid var(--border-color);color:var(--text-primary);
+  padding:8px 12px;border-radius:6px;font-size:12px;font-family:var(--font-mono);
+}
+.settings-group input:focus{border-color:var(--brand-color);outline:none;}
+.settings-info{font-size:10px;color:var(--text-muted);line-height:1.4;margin-top:8px;}
+
+/* ---------- control row ---------- */
+.control-row{
+  display:flex;gap:12px;align-items:center;padding:24px 0 10px;flex-wrap:wrap;
+}
+.control-row input[type=text]{
+  flex:1;min-width:240px;
+  background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-primary);
+  padding:14px 18px;border-radius:var(--radius-lg);font-size:14px;
+  transition:all 0.2s ease;
+  backdrop-filter:blur(12px);
+  box-shadow:0 2px 8px rgba(232, 106, 88, 0.01);
+}
+.control-row input[type=text]::placeholder{color:var(--text-muted);}
+.control-row input[type=text]:focus{border-color:var(--brand-color);outline:none;box-shadow:0 0 0 3px rgba(232, 106, 88, 0.12);}
+.run-btn{
+  background:var(--text-primary);color:#FFFFFF;border:none;
+  padding:14px 24px;border-radius:var(--radius-lg);font-weight:600;font-size:14px;
+  display:flex;align-items:center;gap:8px;letter-spacing:-0.01em;
+  transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:0 4px 12px rgba(45, 34, 30, 0.12);
+}
+.run-btn:hover{transform:translateY(-1px);background:#42322d;box-shadow:0 6px 16px rgba(45, 34, 30, 0.18);}
+.run-btn:active{transform:translateY(0);}
+.run-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.run-btn svg{width:14px;height:14px;}
+
+/* ---------- Presets & Planted Bar ---------- */
+.preset-row{
+  display:flex;justify-content:space-between;align-items:center;padding-bottom:18px;
+  border-bottom:1px solid var(--border-color);margin-bottom:20px;flex-wrap:wrap;gap:12px;
+}
+.presets{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.preset-lbl{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;}
+.preset-btn{
+  background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-secondary);
+  padding:6px 14px;border-radius:var(--radius-md);font-size:12px;transition:all 0.2s ease;
+  font-weight:500;
+  backdrop-filter:blur(8px);
+}
+.preset-btn:hover{border-color:var(--text-secondary);color:var(--text-primary);box-shadow:0 2px 4px rgba(0,0,0,0.01);}
+.preset-btn.active{border-color:var(--brand-color);color:var(--brand-color);background:rgba(232, 106, 88, 0.05);}
+.planted-toggle{
+  display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;cursor:pointer;
+  color:var(--text-secondary);user-select:none;
+}
+.planted-toggle input{
+  width:14px;height:14px;accent-color:var(--flagged);
+}
+.planted-toggle:hover{color:var(--flagged);}
+
+.scanline-wrap{
+  height:2px;width:100%;background:rgba(232, 106, 88, 0.05);border-radius:2px;overflow:hidden;margin-bottom:24px;
+  position:relative;
+}
+.scanline{
+  position:absolute;top:0;left:-30%;height:100%;width:30%;
+  background:linear-gradient(90deg,transparent,var(--brand-color),transparent);
+  animation:sweep 1.4s linear infinite;
+  display:none;
+}
+.scanline.active{display:block;}
+@keyframes sweep{
+  0%{left:-30%;}
+  100%{left:100%;}
+}
+
+/* ---------- main layout ---------- */
+.layout{display:grid;grid-template-columns:260px 1fr;gap:24px;align-items:start;}
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr;}
+}
+
+/* ---------- pipeline rail ---------- */
+.pipeline-rail{
+  background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);
+  padding:20px;display:flex;flex-direction:column;gap:20px;
+  box-shadow:0 8px 30px rgba(45, 34, 30, 0.01);
+  backdrop-filter:blur(12px);
+}
+.rail-title{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--text-muted);
+  text-transform:uppercase;margin-bottom:10px;
+}
+.stage{
+  display:flex;gap:12px;padding:6px 0;position:relative;
+}
+.stage:not(:last-child)::after{
+  content:'';position:absolute;left:9px;top:24px;bottom:-6px;width:1px;background:var(--border-color);
+}
+.stage-dot{
+  width:19px;height:19px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  border:2px solid var(--border-color);background:rgba(255, 253, 251, 0.9);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .25s ease;
+}
+.stage-dot svg{width:10px;height:10px;opacity:0;transition:opacity .2s ease;}
+.stage.done .stage-dot{border-color:var(--verified);background:var(--verified-dim);}
+.stage.done .stage-dot svg{opacity:1;stroke:var(--verified);}
+.stage.active .stage-dot{border-color:var(--brand-color);box-shadow:0 0 0 3px rgba(232, 106, 88, 0.15);animation:pulse 1.2s infinite;}
+.stage-body h4{font-size:13px;font-weight:600;color:var(--text-primary);letter-spacing:-0.01em;}
+.stage-body p{font-size:11px;color:var(--text-secondary);margin-top:1px;line-height:1.4;}
+.stage.pending .stage-body h4{color:var(--text-muted);}
+
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 3px rgba(232, 106, 88, 0.15);}
+  50%{box-shadow:0 0 0 6px transparent;}
+}
+
+/* ---------- Agent Network Card ---------- */
+.network-card{
+  background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);
+  padding:18px;margin-bottom:20px;
+  box-shadow:0 8px 30px rgba(45, 34, 30, 0.015);
+  backdrop-filter:blur(12px);
+}
+.network-card h3{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px;}
+
+.graph-node circle {
+  transition: stroke 0.3s, fill 0.3s, filter 0.3s;
+  fill: #FFFFFF;
+}
+.graph-node text {
+  transition: fill 0.3s;
+  pointer-events: none;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.graph-node.active circle {
+  stroke: var(--brand-color);
+  fill: rgba(232, 106, 88, 0.05);
+  filter: drop-shadow(0 2px 6px rgba(232, 106, 88, 0.15));
+  animation: pulseNode 1.5s infinite;
+}
+.graph-node.active text {
+  fill: var(--text-primary);
+  font-weight: bold;
+}
+.graph-node.done circle {
+  stroke: var(--verified);
+  fill: var(--verified-dim);
+}
+.graph-node.done text {
+  fill: var(--verified);
+}
+.graph-node.warn circle {
+  stroke: var(--ambiguous);
+  fill: var(--ambiguous-dim);
+}
+.graph-node.warn text {
+  fill: var(--ambiguous);
+}
+.graph-node.failed circle {
+  stroke: var(--flagged);
+  fill: var(--flagged-dim);
+  filter: drop-shadow(0 2px 6px rgba(220, 38, 38, 0.1));
+}
+.graph-node.failed text {
+  fill: var(--flagged);
+}
+
+@keyframes pulseNode {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Path animation when active */
+path.active-flow {
+  stroke: var(--brand-color);
+  stroke-dasharray: 8, 4;
+  animation: flow 1.5s linear infinite;
+  stroke-width: 2.5;
+}
+path.done-flow {
+  stroke: var(--verified);
+  stroke-width: 2;
+}
+path.skip-flow {
+  stroke: var(--text-muted);
+  stroke-dasharray: 4, 8;
+  animation: flowReverse 3s linear infinite;
+}
+
+@keyframes flow {
+  to { stroke-dashoffset: -24; }
+}
+@keyframes flowReverse {
+  to { stroke-dashoffset: 24; }
+}
+
+/* ---------- Agent Console Terminal ---------- */
+.terminal-card{
+  background:var(--bg-inner);border:1px solid var(--border-color);border-radius:var(--radius-lg);
+  padding:15px;margin-bottom:24px;font-family:var(--font-mono);font-size:11.5px;
+  height:120px;display:flex;flex-direction:column;
+  box-shadow:inset 0 1px 2px rgba(232, 106, 88, 0.01);
+  backdrop-filter:blur(8px);
+}
+.terminal-header{
+  display:flex;justify-content:space-between;align-items:center;color:var(--text-muted);
+  font-size:9px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;border-bottom:1px solid rgba(232, 106, 88, 0.04);padding-bottom:5px;
+}
+.terminal-body{
+  flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;
+  color:var(--brand-color);
+}
+.terminal-body .err{color:var(--flagged);}
+.terminal-body .sys{color:var(--text-secondary);}
+
+/* ---------- main content ---------- */
+.claims-main{min-height:400px;}
+.claims-toolbar{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;
+}
+.claims-toolbar h2{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.01em;}
+.legend{display:flex;gap:14px;font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.legend i{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.legend i.v{background:var(--verified);}
+.legend i.a{background:var(--ambiguous);}
+.legend i.f{background:var(--flagged);}
+
+.empty-state{
+  border:1px dashed var(--border-color);border-radius:var(--radius-lg);
+  background:var(--bg-card);padding:60px 20px;text-align:center;color:var(--text-muted);
+  box-shadow:0 8px 30px rgba(0,0,0,0.015);
+  backdrop-filter:blur(12px);
+}
+.empty-state h3{font-family:var(--font-display);color:var(--text-secondary);font-size:15px;margin-bottom:6px;font-weight:700;}
+.empty-state p{font-size:12.5px;max-width:420px;margin:0 auto;line-height:1.5;}
+
+.claims-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;
+}
+
+.claim-card{
+  background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);
+  padding:18px;cursor:pointer;transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display:flex;flex-direction:column;gap:12px;opacity:0;transform:translateY(8px);
+  animation:cardIn .45s ease forwards;
+  box-shadow:0 4px 20px rgba(0,0,0,0.01);
+  backdrop-filter:blur(12px);
+}
+.claim-card:hover{
+  border-color:var(--brand-color);
+  transform:translateY(-2px);
+  box-shadow:0 12px 30px rgba(232, 106, 88, 0.08);
+}
+@keyframes cardIn{to{opacity:1;transform:translateY(0);}}
+
+.claim-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.claim-text{font-size:13.5px;line-height:1.55;color:var(--text-primary);font-weight:600;letter-spacing:-0.01em;}
+.claim-meta{
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);
+  border-top:1px solid rgba(232, 106, 88, 0.04);padding-top:10px;
+}
+.claim-source{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;}
+
+.stamp{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:0.04em;
+  padding:4px 8px;border-radius:4px;border:1px solid;text-transform:uppercase;
+  transform:rotate(-1.5deg);white-space:nowrap;flex-shrink:0;
+}
+.stamp.verified{color:var(--verified);border-color:var(--verified-border);background:var(--verified-bg);}
+.stamp.ambiguous{color:var(--ambiguous);border-color:var(--ambiguous-border);background:var(--ambiguous-bg);}
+.stamp.flagged{color:var(--flagged);border-color:var(--flagged-border);background:var(--flagged-bg);}
+
+.review-pill{
+  font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);
+  display:inline-flex;align-items:center;gap:5px;
+}
+.review-pill.needs::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--ambiguous);}
+.review-pill.cleared::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--verified);}
+.review-pill.rejected::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--flagged);}
+
+/* ---------- drawer ---------- */
+.drawer-overlay{
+  position:fixed;inset:0;background:rgba(45, 34, 30, 0.12);backdrop-filter:blur(6px);
+  display:none;z-index:150;align-items:stretch;justify-content:flex-end;
+}
+.drawer-overlay.open{display:flex;}
+.drawer{
+  width:min(500px,92vw);background:#FFFFFF;border-left:1px solid var(--border-color);
+  padding:32px;overflow-y:auto;
+  transform:translateX(20px);opacity:0;animation:drawerIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow:-8px 0 32px rgba(45, 34, 30, 0.05);
+}
+@keyframes drawerIn{to{transform:translateX(0);opacity:1;}}
+.drawer-close{
+  background:none;border:1px solid var(--border-color);color:var(--text-secondary);
+  width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  float:right;font-size:14px;
+}
+.drawer-close:hover{border-color:var(--text-secondary);color:var(--text-primary);}
+.drawer h3{font-family:var(--font-display);font-size:18px;font-weight:700;line-height:1.45;margin:8px 0 4px;clear:both;padding-top:4px;letter-spacing:-0.015em;}
+.drawer .drawer-source{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);margin-bottom:20px;}
+
+.conf-meter{
+  display:flex;align-items:center;gap:10px;margin-bottom:24px;
+  font-family:var(--font-mono);
+}
+.conf-bar{flex:1;height:6px;background:var(--bg-main);border-radius:4px;overflow:hidden;border:1px solid var(--border-color);}
+.conf-fill{height:100%;border-radius:4px;}
+.conf-num{font-size:12px;font-weight:600;}
+
+.trace-title{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);
+  margin:24px 0 12px;
+}
+.signal-row{
+  border:1px solid var(--border-color);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:10px;background:var(--bg-inner);
+}
+.signal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.signal-name{font-size:12.5px;font-weight:600;}
+.signal-status{
+  font-family:var(--font-mono);font-size:9.5px;font-weight:600;letter-spacing:0.04em;
+  padding:2px 7px;border-radius:4px;text-transform:uppercase;
+  border:1px solid transparent;
+}
+.signal-status.pass{color:var(--verified);background:var(--verified-dim);border-color:var(--verified-border);}
+.signal-status.fail{color:var(--flagged);background:var(--flagged-dim);border-color:var(--flagged-border);}
+.signal-status.warn{color:var(--ambiguous);background:var(--ambiguous-dim);border-color:var(--ambiguous-border);}
+.signal-status.skip{color:var(--text-secondary);background:var(--border-color);}
+.signal-note{font-size:12px;color:var(--text-secondary);line-height:1.55;white-space:pre-line;}
+
+.review-actions{
+  display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border-color);
+}
+.act-btn{
+  flex:1;padding:11px;border-radius:var(--radius-md);font-weight:600;font-size:12.5px;border:1px solid var(--border-color);
+  background:var(--bg-main);color:var(--text-primary);transition:all 0.15s ease;
+}
+.act-btn.approve:hover{border-color:var(--verified);color:var(--verified);background:var(--verified-dim);}
+.act-btn.reject:hover{border-color:var(--flagged);color:var(--flagged);background:var(--flagged-dim);}
+.act-btn:disabled{opacity:0.4;cursor:default;background:var(--bg-main);color:var(--text-muted);border-color:var(--border-color);}
+.reviewed-note{
+  margin-top:24px;padding:12px 13px;border-radius:var(--radius-md);background:var(--bg-main);border:1px solid var(--border-color);
+  font-family:var(--font-mono);font-size:11.5px;color:var(--text-secondary);
+}
+
+/* ---------- review log ---------- */
+.log-panel{
+  border-top:1px solid var(--border-color);padding-top:18px;margin-top:5px;
+}
+.log-panel h4{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;}
+.log-empty{font-size:11px;color:var(--text-muted);}
+.log-entry{
+  display:flex;flex-direction:column;gap:2px;font-size:11px;padding:6px 0;border-bottom:1px solid rgba(232, 106, 88, 0.04);
+  font-family:var(--font-mono);color:var(--text-secondary);
+}
+.log-entry:last-child{border-bottom:none;}
+.log-meta{display:flex;justify-content:space-between;font-size:9.5px;margin-bottom:2px;}
+.log-entry .ts{color:var(--text-muted);}
+.log-entry .tag{font-weight:600;}
+.log-entry .tag.approve{color:var(--verified);}
+.log-entry .tag.reject{color:var(--flagged);}
+.log-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important;}
+}
+</style>
+</head>
+<body>
+
+<!-- Stunning floating gradient mesh blobs -->
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+</div>
+<!-- Faded dot grid overlay -->
+<div class="bg-dot-grid"></div>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">TL</div>
+      <div class="brand-text">
+        <h1>TrustLayer</h1>
+        <p>Verification Console · Multi-Agent Research Audit</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-meta">
+        <span><span class="dot" id="statusDot"></span><span id="statusText">idle — awaiting topic</span></span><br>
+        Session: single-topic · API client
+      </div>
+      <button class="settings-btn" id="settingsBtn" title="API Configuration Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+
+      <div class="settings-tray" id="settingsTray">
+        <h3>API Configuration</h3>
+        <div class="settings-group">
+          <label for="geminiKeyInput">Gemini API Key</label>
+          <input type="password" id="geminiKeyInput" placeholder="AI Studio Gemini Key...">
+        </div>
+        <div class="settings-group">
+          <label for="tavilyKeyInput">Tavily API Key (Optional)</label>
+          <input type="password" id="tavilyKeyInput" placeholder="Tavily Search API Key...">
+        </div>
+        <div class="settings-info">
+          Keys are stored in your browser's local storage and used directly for requests. Leave Tavily empty to use our built-in Web Search Simulator.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="control-row">
+    <input type="text" id="topicInput" value="James Webb Space Telescope discoveries" placeholder="Enter a topic to investigate…">
+    <button class="run-btn" id="runBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z" fill="currentColor" stroke="none"/></svg>
+      Begin investigation
+    </button>
+  </div>
+
+  <div class="preset-row">
+    <div class="presets">
+      <span class="preset-lbl">Preset Demos:</span>
+      <button class="preset-btn active" data-topic="James Webb Space Telescope discoveries" data-planted="false">JWST Facts</button>
+      <button class="preset-btn" data-topic="James Webb Space Telescope discoveries" data-planted="true">JWST (Planted Anomaly)</button>
+      <button class="preset-btn" data-topic="Quantum Computing room-temperature superconductors" data-planted="false">Quantum Tech</button>
+    </div>
+    <label class="planted-toggle">
+      <input type="checkbox" id="plantedCheck">
+      Planted Anomaly Mode
+    </label>
+  </div>
+
+  <div class="scanline-wrap"><div class="scanline" id="scanline"></div></div>
+
+  <div class="layout">
+
+    <aside class="pipeline-rail">
+      <div>
+        <div class="rail-title">Pipeline</div>
+        <div id="railStages">
+          <div class="stage pending" data-stage="research">
+            <div class="stage-dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>
+            <div class="stage-body">
+              <h4>Research Agent</h4>
+              <p>Query & extract claims</p>
+            </div>
+          </div>
+          <div class="stage pending" data-stage="stage1">
+            <div class="stage-dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>
+            <div class="stage-body">
+              <h4>Stage 1 · Fast Signals</h4>
+              <p>Structure anomaly check</p>
+            </div>
+          </div>
+          <div class="stage pending" data-stage="stage2">
+            <div class="stage-dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>
+            <div class="stage-body">
+              <h4>Stage 2 · Escalation</h4>
+              <p>Cross-doc, multi-query, round-trip</p>
+            </div>
+          </div>
+          <div class="stage pending" data-stage="synthesis">
+            <div class="stage-dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>
+            <div class="stage-body">
+              <h4>Synthesis Agent</h4>
+              <p>Compile badges & report</p>
+            </div>
+          </div>
+          <div class="stage pending" data-stage="review">
+            <div class="stage-dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>
+            <div class="stage-body">
+              <h4>Human-in-Loop</h4>
+              <p>Approve / reject flagged claims</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="log-panel">
+        <h4>Review Log</h4>
+        <div id="logBody"><p class="log-empty">No human review actions yet.</p></div>
+      </div>
+    </aside>
+
+    <main class="claims-main">
+      <div class="network-card">
+        <h3>Agent Network Topology</h3>
+        <svg id="agentGraph" viewBox="0 0 760 140" width="100%" height="130">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8"/>
+            </marker>
+            <marker id="arrow-active" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#E86A58"/>
+            </marker>
+          </defs>
+          <!-- Paths -->
+          <path id="path-research-fast" d="M 60 70 L 170 70" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+          
+          <path id="path-fast-cross" d="M 170 70 C 240 30, 260 25, 330 25" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+          <path id="path-fast-multi" d="M 170 70 L 330 70" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+          <path id="path-fast-round" d="M 170 70 C 240 110, 260 115, 330 115" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+          
+          <!-- Skip flow bypassing Stage 2 -->
+          <path id="path-fast-synth" d="M 170 70 Q 330 -10, 500 70" stroke="#E2E8F0" stroke-width="1.5" stroke-dasharray="3,6" fill="none" marker-end="url(#arrow)"/>
+
+          <path id="path-cross-synth" d="M 330 25 C 400 25, 430 30, 500 70" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+          <path id="path-multi-synth" d="M 330 70 L 500 70" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+          <path id="path-round-synth" d="M 330 115 C 400 115, 430 110, 500 70" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+          
+          <path id="path-synth-hil" d="M 500 70 L 660 70" stroke="#E2E8F0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+          <!-- Nodes -->
+          <g class="graph-node pending" id="node-research" transform="translate(60,70)">
+            <circle r="22" stroke="#E2E8F0" stroke-width="2" />
+            <text font-size="8" fill="#64748B" text-anchor="middle" dy="3.5">RESEARCH</text>
+          </g>
+          
+          <g class="graph-node pending" id="node-fast" transform="translate(170,70)">
+            <circle r="22" stroke="#E2E8F0" stroke-width="2" />
+            <text font-size="8" fill="#64748B" text-anchor="middle" dy="3.5">FAST CHK</text>
+          </g>
+          
+          <g class="graph-node pending" id="node-cross" transform="translate(330,25)">
+            <circle r="22" stroke="#E2E8F0" stroke-width="2" />
+            <text font-size="7" fill="#64748B" text-anchor="middle" dy="2.5">CROSS-DOC</text>
+          </g>
+          
+          <g class="graph-node pending" id="node-multi" transform="translate(330,70)">
+            <circle r="22" stroke="#E2E8F0" stroke-width="2" />
+            <text font-size="7" fill="#64748B" text-anchor="middle" dy="2.5">MULTI-Q</text>
+          </g>
+          
+          <g class="graph-node pending" id="node-round" transform="translate(330,115)">
+            <circle r="22" stroke="#E2E8F0" stroke-width="2" />
+            <text font-size="7" fill="#64748B" text-anchor="middle" dy="2.5">ROUND-TRIP</text>
+          </g>
+          
+          <g class="graph-node pending" id="node-synth" transform="translate(500,70)">
+            <circle r="22" stroke="#E2E8F0" stroke-width="2" />
+            <text font-size="8" fill="#64748B" text-anchor="middle" dy="3.5">SYNTHESIS</text>
+          </g>
+          
+          <g class="graph-node pending" id="node-hil" transform="translate(660,70)">
+            <circle r="22" stroke="#E2E8F0" stroke-width="2" />
+            <text font-size="8" fill="#64748B" text-anchor="middle" dy="3.5">HUMAN-IL</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="terminal-card">
+        <div class="terminal-header">
+          <span>Agent Stream Console</span>
+          <span style="color:var(--verified)">● Live</span>
+        </div>
+        <div class="terminal-body" id="terminalBody">
+          <div class="sys">System ready. Enter topic and click begin.</div>
+        </div>
+      </div>
+
+      <div class="claims-toolbar">
+        <h2>Claims & Verification Audits</h2>
+        <div class="legend">
+          <span><i class="v"></i>Verified</span>
+          <span><i class="a"></i>Ambiguous</span>
+          <span><i class="f"></i>Flagged</span>
+        </div>
+      </div>
+
+      <div id="emptyState" class="empty-state">
+        <h3>No investigation running</h3>
+        <p>Enter a topic above and run the pipeline. Every claim gets a fast structural syntax evaluation — only ambiguous or suspicious ones escalate to the deep cross-source check to optimize API cost.</p>
+      </div>
+
+      <div class="claims-grid" id="claimsGrid"></div>
+    </main>
+
+  </div>
+
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay">
+  <div class="drawer" id="drawer"></div>
+</div>
+
+<script>
+/* =========================================================================
+   TrustLayer Frontend — upgraded 10/10 dashboard console
+   Supports: Real-time SSE streaming, Custom Settings Key Injection,
+   Interactive SVG Agent Network, Presets, and Simulation Fallback.
+   ========================================================================= */
+
+// Static simulator data used as absolute fallback if frontend is loaded offline or directly from disk (file://)
+const MOCK_SIMULATED_CLAIMS = [
+  {
+    id:'c1',
+    text:'JWST launched on 25 December 2021 aboard an Ariane 5 rocket from French Guiana.',
+    source:'nasa.gov',
+    sourceUrl:'https://www.nasa.gov/press-release/nasas-webb-telescope-launches-to-see-the-first-galaxies',
+    sourcesCount:4,
+    badge:'verified',
+    confidence:0.97,
+    signals:{
+      structure:{status:'pass', note:'No structural anomalies — date, actor, and location are internally consistent.'},
+      crossDoc:{status:'skip', note:'Fast signal was confident. Escalation skipped to save cost.'},
+      multiQuery:{status:'skip', note:'Not run — claim did not meet the escalation threshold.'},
+      roundTrip:{status:'skip', note:'Not run — claim did not meet the escalation threshold.'}
+    }
+  },
+  {
+    id:'c2',
+    text:'JWST orbits the Sun–Earth L2 Lagrange point, roughly 1.5 million km from Earth.',
+    source:'esa.int',
+    sourceUrl:'https://www.esa.int/Science_Exploration/Space_Science/Webb/JWST_frequently_asked_questions',
+    sourcesCount:5,
+    badge:'verified',
+    confidence:0.95,
+    signals:{
+      structure:{status:'pass', note:'Numeric distance and named location match expected pattern.'},
+      crossDoc:{status:'skip', note:'Fast signal was confident. Escalation skipped to save cost.'},
+      multiQuery:{status:'skip', note:'Not run — claim did not meet the escalation threshold.'},
+      roundTrip:{status:'skip', note:'Not run — claim did not meet the escalation threshold.'}
+    }
+  },
+  {
+    id:'c3',
+    text:'JWST has directly imaged evidence of liquid water on the surface of Mars.',
+    source:'unreliable-blog.net',
+    sourceUrl:'https://unreliable-blog.net/breaking-news-water-on-mars',
+    sourcesCount:1,
+    badge:'flagged',
+    confidence:0.11,
+    planted:true,
+    signals:{
+      structure:{status:'warn', note:'Claim pairs a specific instrument with an unusually strong, uncorroborated result — flagged for escalation.'},
+      crossDoc:{status:'fail', note:'4 of 5 retrieved sources describe JWST studying Mars atmospheric composition, not surface liquid water. No source corroborates surface liquid water.'},
+      multiQuery:{status:'fail', note:'Rephrased question ("What has JWST found on Mars?") returns atmospheric chemistry answers, not surface water — answer is unstable.'},
+      roundTrip:{status:'fail', note:'Regenerated question from this claim does not match the original research query, indicating the claim drifted from its source.'}
+    }
+  },
+  {
+    id:'c4',
+    text:"JWST's primary mirror is made of 18 hexagonal, gold-coated beryllium segments.",
+    source:'nasa.gov',
+    sourceUrl:'https://www.nasa.gov/press-release/nasas-webb-telescope-launches-to-see-the-first-galaxies',
+    sourcesCount:6,
+    badge:'verified',
+    confidence:0.98,
+    signals:{
+      structure:{status:'pass', note:'Technical spec matches expected structural pattern for hardware claims.'},
+      crossDoc:{status:'skip', note:'Fast signal was confident. Escalation skipped to save cost.'},
+      multiQuery:{status:'skip', note:'Not run — claim did not meet the escalation threshold.'},
+      roundTrip:{status:'skip', note:'Not run — claim did not meet the escalation threshold.'}
+    }
+  },
+  {
+    id:'c5',
+    text:'JWST discovered its first confirmed exoplanet in 2015.',
+    source:'science-aggregator.com',
+    sourceUrl:'https://science-aggregator.com/jwst-first-exoplanet',
+    sourcesCount:3,
+    badge:'ambiguous',
+    confidence:0.42,
+    signals:{
+      structure:{status:'warn', note:'Date precedes JWST\'s 2021 launch — flagged for a timeline inconsistency check.'},
+      crossDoc:{status:'fail', note:'Other sources place JWST\'s first exoplanet characterization in 2022, not 2015. Likely conflated with Kepler/Hubble missions.'},
+      multiQuery:{status:'pass', note:'Rephrased query converges on "2022" across two variants — the underlying fact is stable, only this claim\'s date is wrong.'},
+      roundTrip:{status:'warn', note:'Regenerated question loosely matches original intent but the year is the likely error source.'}
+    }
+  }
+];
+
+const badgeLabel = { verified:'Verified', ambiguous:'Ambiguous', flagged:'Flagged' };
+const reviewState = {}; // claimId -> 'cleared' | 'rejected'
+const logEntries = [];
+let currentClaims = [];
+
+const el = (sel) => document.querySelector(sel);
+const runBtn = el('#runBtn');
+const topicInput = el('#topicInput');
+const scanline = el('#scanline');
+const statusDot = el('#statusDot');
+const statusText = el('#statusText');
+const claimsGrid = el('#claimsGrid');
+const emptyState = el('#emptyState');
+const drawerOverlay = el('#drawerOverlay');
+const drawer = el('#drawer');
+const logBody = el('#logBody');
+const settingsBtn = el('#settingsBtn');
+const settingsTray = el('#settingsTray');
+const geminiKeyInput = el('#geminiKeyInput');
+const tavilyKeyInput = el('#tavilyKeyInput');
+const plantedCheck = el('#plantedCheck');
+const terminalBody = el('#terminalBody');
+
+// Load stored settings on init
+geminiKeyInput.value = localStorage.getItem('trustlayer_gemini') || '';
+tavilyKeyInput.value = localStorage.getItem('trustlayer_tavily') || '';
+
+// Event Listeners
+settingsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  settingsTray.classList.toggle('open');
+});
+settingsTray.addEventListener('click', (e) => e.stopPropagation());
+document.addEventListener('click', () => settingsTray.classList.remove('open'));
+
+geminiKeyInput.addEventListener('input', () => {
+  localStorage.setItem('trustlayer_gemini', geminiKeyInput.value.trim());
+});
+tavilyKeyInput.addEventListener('input', () => {
+  localStorage.setItem('trustlayer_tavily', tavilyKeyInput.value.trim());
+});
+
+// Presets Configurator
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    topicInput.value = btn.dataset.topic;
+    plantedCheck.checked = btn.dataset.planted === 'true';
+  });
+});
+
+function logTerminal(msg, type = 'log') {
+  const line = document.createElement('div');
+  line.className = type;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  terminalBody.appendChild(line);
+  terminalBody.scrollTop = terminalBody.scrollHeight;
+}
+
+function setStage(name, state){
+  const node = document.querySelector(`.stage[data-stage="${name}"]`);
+  if(!node) return;
+  node.classList.remove('pending','active','done');
+  node.classList.add(state);
+
+  // Update SVG node styles
+  const svgNode = el(`#node-${name}`);
+  if(svgNode) {
+    svgNode.classList.remove('pending','active','done','failed','warn');
+    svgNode.classList.add(state);
+  }
+}
+
+function resetStages(){
+  ['research','stage1','stage2','synthesis','review'].forEach(s => setStage(s,'pending'));
+  
+  // Reset all SVG Paths to default
+  const paths = ['path-research-fast', 'path-fast-cross', 'path-fast-multi', 'path-fast-round', 'path-fast-synth', 'path-cross-synth', 'path-multi-synth', 'path-round-synth', 'path-synth-hil'];
+  paths.forEach(p => {
+    const pathEl = el(`#${p}`);
+    if (pathEl) {
+      pathEl.className.baseVal = '';
+      pathEl.setAttribute('stroke', '#E2E8F0');
+    }
+  });
+
+  // Reset SVG node visual markers
+  const nodes = ['research', 'fast', 'cross', 'multi', 'round', 'synth', 'hil'];
+  nodes.forEach(n => {
+    const nodeEl = el(`#node-${n}`);
+    if (nodeEl) nodeEl.className.baseVal = 'graph-node pending';
+  });
+}
+
+function updatePath(id, style) {
+  const path = el(`#${id}`);
+  if (!path) return;
+  path.className.baseVal = style; // active-flow | done-flow | skip-flow
+}
+
+// polyfill for replaceAll if needed
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+/**
+ * Run Pipeline Coordinator (Handles SSE real-time connection, fallback simulation)
+ */
+async function runPipeline(){
+  const topic = topicInput.value.trim();
+  if(!topic) return;
+
+  runBtn.disabled = true;
+  scanline.classList.add('active');
+  statusDot.classList.add('live');
+  emptyState.style.display = 'none';
+  claimsGrid.innerHTML = '';
+  terminalBody.innerHTML = '';
+  Object.keys(reviewState).forEach(k => delete reviewState[k]);
+  logEntries.length = 0;
+  renderLog();
+  resetStages();
+
+  const geminiKey = geminiKeyInput.value.trim();
+  const tavilyKey = tavilyKeyInput.value.trim();
+  const isPlanted = plantedCheck.checked;
+
+  logTerminal(`Initializing validation pipeline for topic: "${topic}"...`);
+
+  // Detect environment context
+  const isWebLocalServer = window.location.protocol.startsWith('http');
+
+  if (!isWebLocalServer && !geminiKey) {
+    logTerminal("Running from local file system without API keys. Running full client-side demo simulation.", "sys");
+    runSimulationMode(isPlanted);
+    return;
+  }
+
+  if (isWebLocalServer) {
+    // Attempt real connection to Express SSE backend
+    logTerminal("Connecting to verification server...");
+    
+    // Construct query parameters
+    let sseUrl = `/api/investigate?topic=${encodeURIComponent(topic)}&planted=${isPlanted}`;
+    if (geminiKey) sseUrl += `&geminiKey=${encodeURIComponent(geminiKey)}`;
+    if (tavilyKey) sseUrl += `&tavilyKey=${encodeURIComponent(tavilyKey)}`;
+
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.addEventListener('progress', (e) => {
+      const data = JSON.parse(e.data);
+      logTerminal(data.message);
+      statusText.textContent = data.message.toLowerCase();
+    });
+
+    eventSource.addEventListener('stage', (e) => {
+      const data = JSON.parse(e.data);
+      setStage(data.stage, data.status);
+      
+      // Dynamic SVG Network path updates
+      if (data.stage === 'research' && data.status === 'active') {
+        updatePath('path-research-fast', 'active-flow');
+      }
+      if (data.stage === 'research' && data.status === 'done') {
+        updatePath('path-research-fast', 'done-flow');
+        setStage('fast', 'active');
+      }
+      if (data.stage === 'stage1' && data.status === 'active') {
+        updatePath('path-fast-cross', 'active-flow');
+        updatePath('path-fast-multi', 'active-flow');
+        updatePath('path-fast-round', 'active-flow');
+      }
+      if (data.stage === 'stage1' && data.status === 'done') {
+        updatePath('path-fast-cross', 'done-flow');
+        updatePath('path-fast-multi', 'done-flow');
+        updatePath('path-fast-round', 'done-flow');
+      }
+      if (data.stage === 'stage2' && data.status === 'active') {
+        updatePath('path-cross-synth', 'active-flow');
+        updatePath('path-multi-synth', 'active-flow');
+        updatePath('path-round-synth', 'active-flow');
+      }
+      if (data.stage === 'stage2' && data.status === 'done') {
+        updatePath('path-cross-synth', 'done-flow');
+        updatePath('path-multi-synth', 'done-flow');
+        updatePath('path-round-synth', 'done-flow');
+      }
+      if (data.stage === 'synthesis' && data.status === 'active') {
+        updatePath('path-synth-hil', 'active-flow');
+      }
+      if (data.stage === 'synthesis' && data.status === 'done') {
+        updatePath('path-synth-hil', 'done-flow');
+      }
+    });
+
+    eventSource.addEventListener('claims', (e) => {
+      const data = JSON.parse(e.data);
+      currentClaims = data.claims;
+      renderClaims(currentClaims);
+    });
+
+    eventSource.addEventListener('error', (e) => {
+      let msg = "SSE pipeline connection lost.";
+      if (e.data) {
+        const data = JSON.parse(e.data);
+        msg = data.message;
+      }
+      logTerminal(`Error: ${msg}`, 'err');
+      statusText.textContent = 'error in pipeline';
+      eventSource.close();
+      shutdownPipeline();
+    });
+
+    eventSource.addEventListener('complete', (e) => {
+      eventSource.close();
+      shutdownPipeline();
+    });
+
+  } else {
+    // API Keys provided but loading from file://, mock network requests
+    logTerminal("Keys provided in standalone mode. Real API execution is only supported when running via Express local server.", "sys");
+    runSimulationMode(isPlanted);
+  }
+}
+
+function shutdownPipeline() {
+  scanline.classList.remove('active');
+  runBtn.disabled = false;
+  statusDot.classList.remove('live');
+}
+
+/**
+ * Clean offline demonstration simulation mode.
+ */
+async function runSimulationMode(planted) {
+  statusText.textContent = 'initializing research agent…';
+  setStage('research','active');
+  updatePath('path-research-fast', 'active-flow');
+  await sleep(1500);
+  logTerminal("Research Agent: Generating search queries...");
+  logTerminal("Research Agent: Executing search for topic details...");
+  await sleep(1000);
+  setStage('research','done');
+  updatePath('path-research-fast', 'done-flow');
+
+  statusText.textContent = 'running fast structure checks…';
+  setStage('stage1','active');
+  updatePath('path-fast-cross', 'active-flow');
+  updatePath('path-fast-multi', 'active-flow');
+  updatePath('path-fast-round', 'active-flow');
+  await sleep(1200);
+  logTerminal("Stage 1 Fast Check: Evaluation syntax, timeline patterns & numbers...");
+  
+  if (planted) {
+    logTerminal("Stage 1 Fast Check [PLANTED]: Structural anomalies detected in Mars Claim! Escalating claim c3.");
+  } else {
+    logTerminal("Stage 1 Fast Check: Timeline discrepancies detected in Claim c5. Escalating check.");
+  }
+  setStage('stage1','done');
+  updatePath('path-fast-cross', 'done-flow');
+  updatePath('path-fast-multi', 'done-flow');
+  updatePath('path-fast-round', 'done-flow');
+
+  statusText.textContent = 'escalating anomalous claims…';
+  setStage('stage2','active');
+  updatePath('path-cross-synth', 'active-flow');
+  updatePath('path-multi-synth', 'active-flow');
+  updatePath('path-round-synth', 'active-flow');
+  if (!planted) {
+    updatePath('path-fast-synth', 'skip-flow'); // Show saving cost flow bypass
+  }
+  await sleep(1800);
+  logTerminal("Stage 2 Check: Querying cross-document references...");
+  logTerminal("Stage 2 Check: Performing multi-query rephrased consistency audit...");
+  logTerminal("Stage 2 Check: Executing round-trip question generation validation...");
+  setStage('stage2','done');
+  updatePath('path-cross-synth', 'done-flow');
+  updatePath('path-multi-synth', 'done-flow');
+  updatePath('path-round-synth', 'done-flow');
+
+  statusText.textContent = 'compiling synthesis report…';
+  setStage('synthesis','active');
+  updatePath('path-synth-hil', 'active-flow');
+  await sleep(1000);
+  setStage('synthesis','done');
+  updatePath('path-synth-hil', 'done-flow');
+
+  // Filter claims based on planted status
+  let claimsToRender = [...MOCK_SIMULATED_CLAIMS];
+  if (!planted) {
+    claimsToRender = claimsToRender.filter(c => !c.planted);
+  }
+  currentClaims = claimsToRender;
+  renderClaims(claimsToRender);
+
+  setStage('review','active');
+  const openReviews = claimsToRender.filter(c=>c.badge!=='verified').length;
+  statusText.textContent = `${claimsToRender.length} claims ready — ${openReviews} need human review`;
+  logTerminal("Pipeline synthesis completed. " + openReviews + " ambiguous/flagged claims need review.", "sys");
+
+  shutdownPipeline();
+}
+
+function renderClaims(claims){
+  claimsGrid.innerHTML = '';
+  claims.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'claim-card';
+    card.style.animationDelay = `${i * 70}ms`;
+    card.dataset.id = c.id;
+    card.innerHTML = `
+      <div class="claim-top">
+        <div class="claim-text">${c.text}</div>
+        <div class="stamp ${c.badge}">${badgeLabel[c.badge]}</div>
+      </div>
+      <div class="claim-meta">
+        <span class="claim-source">${c.sourcesCount} source${c.sourcesCount===1?'':'s'} · ${c.source}</span>
+        <span class="review-pill" data-review="${c.id}">${reviewPillFor(c)}</span>
+      </div>
+    `;
+    card.addEventListener('click', () => openDrawer(c.id));
+    claimsGrid.appendChild(card);
+  });
+}
+
+function reviewPillFor(c){
+  const state = reviewState[c.id];
+  if(state === 'cleared') return '<span class="review-pill cleared">cleared</span>';
+  if(state === 'rejected') return '<span class="review-pill rejected">rejected</span>';
+  if(c.badge === 'verified') return '<span>auto-passed</span>';
+  return '<span class="review-pill needs">needs review</span>';
+}
+
+function confColor(v){
+  if(v >= 0.7) return getComputedStyle(document.documentElement).getPropertyValue('--verified');
+  if(v >= 0.4) return getComputedStyle(document.documentElement).getPropertyValue('--ambiguous');
+  return getComputedStyle(document.documentElement).getPropertyValue('--flagged');
+}
+
+function statusClass(s){
+  if(s === 'pass') return 'pass';
+  if(s === 'fail') return 'fail';
+  if(s === 'warn') return 'warn';
+  return 'skip';
+}
+
+function openDrawer(id){
+  const c = currentClaims.find(x => x.id === id);
+  if(!c) return;
+  const color = confColor(c.confidence);
+  const needsReview = c.badge !== 'verified';
+  const state = reviewState[c.id];
+
+  drawer.innerHTML = `
+    <button class="drawer-close" id="drawerClose">✕</button>
+    <div class="stamp ${c.badge}" style="display:inline-block;">${badgeLabel[c.badge]}</div>
+    <h3>${c.text}</h3>
+    <div class="drawer-source">
+      ${c.sourcesCount} source${c.sourcesCount===1?'':'s'} referenced · primary: 
+      <a href="${c.sourceUrl || '#'}" target="_blank" style="color:var(--brand-color); text-decoration:none; font-weight:500;">${c.source} ↗</a>
+    </div>
+
+    <div class="conf-meter">
+      <div class="conf-bar"><div class="conf-fill" style="width:${Math.round(c.confidence*100)}%; background:${color};"></div></div>
+      <div class="conf-num" style="color:${color};">${c.confidence.toFixed(2)}</div>
+    </div>
+
+    <div class="trace-title">Signal trace</div>
+    ${signalRow('Structure anomaly (Stage 1)', c.signals.structure)}
+    ${signalRow('Cross-document consistency', c.signals.crossDoc)}
+    ${signalRow('Multi-query consistency', c.signals.multiQuery)}
+    ${signalRow('Round-trip generation', c.signals.roundTrip)}
+
+    ${needsReview ? `
+      <div class="review-actions">
+        <button class="act-btn approve" id="approveBtn" ${state?'disabled':''}>Approve claim</button>
+        <button class="act-btn reject" id="rejectBtn" ${state?'disabled':''}>Reject claim</button>
+      </div>
+      ${state ? `<div class="reviewed-note">Reviewed — marked <strong>${state === 'cleared' ? 'cleared' : 'rejected'}</strong>. See Review Log.</div>` : ''}
+    ` : `
+      <div class="reviewed-note">This claim cleared the fast signal check with high confidence, so it was auto-passed without human review.</div>
+    `}
+  `;
+
+  el('#drawerClose').addEventListener('click', closeDrawer);
+  if(needsReview && !state){
+    el('#approveBtn').addEventListener('click', () => reviewClaim(c.id, 'cleared'));
+    el('#rejectBtn').addEventListener('click', () => reviewClaim(c.id, 'rejected'));
+  }
+
+  drawerOverlay.classList.add('open');
+}
+
+function signalRow(name, sig){
+  if (!sig) return '';
+  return `
+    <div class="signal-row">
+      <div class="signal-head">
+        <span class="signal-name">${name}</span>
+        <span class="signal-status ${statusClass(sig.status)}">${sig.status}</span>
+      </div>
+      <div class="signal-note">${sig.note}</div>
+    </div>
+  `;
+}
+
+function closeDrawer(){
+  drawerOverlay.classList.remove('open');
+}
+
+function reviewClaim(id, outcome){
+  reviewState[id] = outcome;
+  const claim = currentClaims.find(c => c.id === id);
+  logEntries.unshift({ ts: new Date().toLocaleTimeString(), id, outcome, text: claim.text });
+  renderLog();
+  renderClaims(currentClaims);
+  openDrawer(id);
+
+  const stillPending = currentClaims.filter(c => c.badge !== 'verified' && !reviewState[c.id]).length;
+  if(stillPending === 0){
+    setStage('review','done');
+    statusText.textContent = 'all flagged claims reviewed — investigation closed';
+    logTerminal("Human Review: All outstanding reviews complete. Session finalized.", "sys");
+  } else {
+    statusText.textContent = `${stillPending} claim${stillPending===1?'':'s'} still awaiting human review`;
+  }
+}
+
+function renderLog(){
+  if(logEntries.length === 0){
+    logBody.innerHTML = '<p class="log-empty">No human review actions yet.</p>';
+    return;
+  }
+  logBody.innerHTML = logEntries.map(e => `
+    <div class="log-entry">
+      <div class="log-meta">
+        <span class="ts">${e.ts}</span>
+        <span class="tag ${e.outcome === 'cleared' ? 'approve' : 'reject'}">${e.outcome === 'cleared' ? 'APPROVED' : 'REJECTED'}</span>
+      </div>
+      <span class="log-txt" title="${e.text}">${e.text}</span>
+    </div>
+  `).join('');
+}
+
+runBtn.addEventListener('click', runPipeline);
+topicInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') runPipeline(); });
+drawerOverlay.addEventListener('click', (e) => { if(e.target === drawerOverlay) closeDrawer(); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeDrawer(); });
+</script>
+
+</body>
+</html>
