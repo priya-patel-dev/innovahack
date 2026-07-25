@@ -27,7 +27,7 @@ Unlike simple search-and-summarize AI wrappers, TrustLayer acts as a zero-trust 
 Restructured to support deployment on Vercel Serverless Functions:
 
 ```
-multi-agent-fact-checker/
+innovahack/
 ├── api/
 │   └── investigate.js         # Vercel Node.js Serverless SSE stream handler
 ├── lib/
@@ -52,8 +52,8 @@ multi-agent-fact-checker/
 ### Running Locally
 1. Clone the repository:
    ```bash
-   git clone https://github.com/sharmashweta-04/multi-agent-fact-checker.git
-   cd multi-agent-fact-checker
+   git clone https://github.com/priya-patel-dev/innovahack.git
+   cd innovahack
    ```
 2. Install dependencies:
    ```bash
